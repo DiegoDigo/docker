@@ -1,0 +1,78 @@
+version: "3.3"
+
+services:
+
+  nginx:
+    build:
+      context: ./docker/nginx
+      dockerfile: nginx.dockerfile
+    container_name: nginx
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+    networks:
+      - portal
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend.dockerfile
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+    networks:
+      - portal
+
+  api:
+    build:
+      context: .
+      dockerfile: backend.dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+      - fila
+    networks:
+      - portal
+
+  db:
+    image: postgres:9.6-alpine
+    restart: always
+    container_name: "postgres"
+    environment:
+      POSTGRES_DB: teste
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: example
+    ports:
+      - "5434:5432"
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    networks:
+      - portal
+
+  fila:
+    image: webcenter/activemq
+    ports:
+      - 8161:8161
+      - 61616:61616
+    environment:
+      - ACTIVEMQ_MIN_MEMORY=512
+      - ACTIVEMQ_MAX_MEMORY=2048
+      - ACTIVEMQ_ENABLED_AUTH=false
+      - ACTIVEMQ_ADMIN_LOGIN=admin
+      - ACTIVEMQ_ADMIN_PASSWORD=admin
+    volumes:
+      - activemq_db:/var/log/activemq
+    networks:
+      - portal
+
+volumes:
+  activemq_db:
+    driver: local
+  database_data:
+    driver: local
+
+networks:
+  portal:
